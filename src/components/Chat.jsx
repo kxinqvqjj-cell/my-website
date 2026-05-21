@@ -4,13 +4,6 @@ import { tomorrow } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useState, useEffect, useRef } from "react";
 
 export default function Chat() {
-  // ✅ 你的真实头像（本地 or URL都可以）
-  const userAvatar =
-    "https://api.dicebear.com/7.x/avataaars/svg?seed=user";
-
-  const aiAvatar =
-    "https://api.dicebear.com/7.x/bottts/svg?seed=ai";
-
   const [message, setMessage] = useState("");
 
   const [messages, setMessages] = useState(() => {
@@ -25,8 +18,10 @@ export default function Chat() {
 
   const [currentChatId, setCurrentChatId] = useState(null);
   const [loading, setLoading] = useState(false);
-
+  const [selectedModel, setSelectedModel] =
+  useState("deepseek/deepseek-chat");
   const bottomRef = useRef(null);
+  const controllerRef = useRef(null);
 
   // 滚动到底部
   useEffect(() => {
@@ -65,16 +60,22 @@ export default function Chat() {
       setMessages([]);
     }
   }
+  function stopGenerating() {
+
+  controllerRef.current?.abort();
+
+  setLoading(false);
+
+}
 
   // 发送消息
   async function sendMessage() {
     if (!message.trim()) return;
 
     const userMessage = {
-      role: "user",
-      content: message,
-      avatar: userAvatar,
-    };
+  role: "user",
+  content: message,
+};
 
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
@@ -82,52 +83,87 @@ export default function Chat() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://127.0.0.1:3001/chat", {
+      const controller = new AbortController();
+
+      controllerRef.current = controller;
+      const response = await fetch("http://127.0.0.1:3001/chat-stream", {
+          signal: controller.signal,
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          message: userMessage.content,
-        }),
+       body: JSON.stringify({
+  message: userMessage.content,
+  model: selectedModel,
+}),
       });
 
-      const data = await response.json();
+const reader = response.body.getReader();
 
-      // ❗只保留一个 AI message（修复重复 bug）
-      const aiMessage = {
-        role: "assistant",
-        content: "",
-        avatar: aiAvatar,
-      };
+const decoder = new TextDecoder();
 
-      setMessages(prev => [...prev, aiMessage]);
+let aiText = "";
 
-      const fullText = data.reply;
-      let currentText = "";
-      let index = 0;
+const aiMessage = {
+  role: "assistant",
+  content: "",
+};
 
-      const interval = setInterval(() => {
-        if (index >= fullText.length) {
-          clearInterval(interval);
-          setLoading(false);
-          return;
-        }
+setMessages(prev => [...prev, aiMessage]);
 
-        currentText += fullText[index];
-        index++;
+while (true) {
+
+  const { done, value } =
+    await reader.read();
+
+  if (done) break;
+
+  const chunk =
+    decoder.decode(value);
+
+  // DeepSeek SSE 数据处理
+  const lines = chunk.split("\n");
+
+  for (const line of lines) {
+
+    if (
+      line.startsWith("data: ") &&
+      !line.includes("[DONE]")
+    ) {
+
+      try {
+
+        const json = JSON.parse(
+          line.replace("data: ", "")
+        );
+
+        const content =
+          json.choices?.[0]?.delta?.content || "";
+
+        aiText += content;
 
         setMessages(prev => {
+
           const updated = [...prev];
+
           updated[updated.length - 1] = {
             role: "assistant",
-            content: currentText,
-            avatar: aiAvatar,
+            content: aiText,
           };
-          return updated;
-        });
-      }, 20);
 
+          return updated;
+
+        });
+
+      } catch (err) {}
+
+    }
+
+  }
+
+}
+
+setLoading(false);
     } catch (error) {
       console.error(error);
       setLoading(false);
@@ -178,10 +214,30 @@ export default function Chat() {
       {/* Chat */}
       <div className="flex-1 flex flex-col p-6">
 
-        <div className="text-3xl font-bold mb-4">Chat</div>
+        <div className="flex items-center justify-between mb-4">
+
+  <div className="text-3xl font-bold">
+    Chat
+  </div>
+
+  <select
+  value={selectedModel}
+  onChange={(e) =>
+    setSelectedModel(e.target.value)
+  }
+  className="border rounded-xl px-4 py-2 bg-white"
+>
+
+  <option value="deepseek/deepseek-chat">
+    DeepSeek
+  </option>
+
+</select>
+
+</div>
 
         {/* messages */}
-        <div className="flex-1 overflow-y-auto space-y-4 mb-4">
+       <div className="flex-1 overflow-y-auto space-y-4 pb-32">
 
           {messages.map((msg, i) => (
             <div
@@ -190,15 +246,6 @@ export default function Chat() {
                 msg.role === "user" ? "justify-end" : "justify-start"
               }`}
             >
-
-              {/* AI头像 */}
-              {msg.role === "assistant" && (
-                <img
-                  src={msg.avatar}
-                  className="w-8 h-8 rounded-full"
-                />
-              )}
-
               {/* 气泡 */}
               <div
                 className={`p-3 rounded-xl max-w-[70%] ${
@@ -228,15 +275,6 @@ export default function Chat() {
                   {msg.content}
                 </ReactMarkdown>
               </div>
-
-              {/* 用户头像 */}
-              {msg.role === "user" && (
-                <img
-                  src={msg.avatar}
-                  className="w-8 h-8 rounded-full"
-                />
-              )}
-
             </div>
           ))}
 
@@ -250,7 +288,7 @@ export default function Chat() {
         </div>
 
         {/* input */}
-        <div className="flex gap-2">
+       <div className="sticky bottom-0 bg-white pt-4 flex gap-2">
           <input
             value={message}
             onChange={(e) => setMessage(e.target.value)}
@@ -262,10 +300,14 @@ export default function Chat() {
           />
 
           <button
-            onClick={sendMessage}
+          onClick={
+            loading
+              ? stopGenerating
+              : sendMessage
+          }
             className="px-6 bg-black text-white rounded-xl"
           >
-            发送
+           {loading ? "停止" : "发送"}
           </button>
         </div>
 
