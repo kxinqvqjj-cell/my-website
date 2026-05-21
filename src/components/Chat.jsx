@@ -6,10 +6,7 @@ import { useState, useEffect, useRef } from "react";
 export default function Chat() {
   const [message, setMessage] = useState("");
 
-  const [messages, setMessages] = useState(() => {
-    const saved = localStorage.getItem("messages");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [messages, setMessages] = useState([]);
 
   const [conversations, setConversations] = useState(() => {
     const saved = localStorage.getItem("conversations");
@@ -28,10 +25,25 @@ export default function Chat() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // 保存 messages
+  // 加载 messages
   useEffect(() => {
-    localStorage.setItem("messages", JSON.stringify(messages));
-  }, [messages]);
+    async function loadMessages() {
+      try {
+        const response = await fetch(
+          "http://127.0.0.1:3001/messages"
+        );
+        const data = await response.json();
+        const formatted = data.map(item => ({
+          role: item.role,
+          content: item.content,
+        }));
+        setMessages(formatted);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    loadMessages();
+  }, []);
 
   // 保存 conversations
   useEffect(() => {
