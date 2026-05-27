@@ -73,29 +73,6 @@ const controllerRef = useRef(null);
 
 }, [token]);
 
-  // 加载 messages
-  useEffect(() => {
-    async function loadMessages() {
-      try {
-        const response = await fetch(
-          "http://127.0.0.1:3001/messages"
-        );
-        const data = await response.json();
-        const formatted = data.map(item => ({
-          role: item.role,
-          content: item.content,
-        }));
-        setMessages(formatted);
-      } catch (error) {
-        console.log(error);
-      }
-    }
-    loadMessages();
-  }, []);
-
-  // 保存 conversations
-
-
   // 新聊天
   function newChat() {
     const newConversation = {
@@ -198,7 +175,9 @@ function logout() {
   localStorage.removeItem("token");
 
   setToken("");
+setMessages([]);
 
+setConversations([]);
 }
   async function sendMessage() {
     if (!message.trim()) return;
