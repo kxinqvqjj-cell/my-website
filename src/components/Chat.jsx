@@ -6,24 +6,72 @@ import { useState, useEffect, useRef } from "react";
 export default function Chat() {
   const [message, setMessage] = useState("");
 
-  const [messages, setMessages] = useState([]);
+const [username, setUsername] =
+  useState("");
 
-  const [conversations, setConversations] = useState(() => {
-    const saved = localStorage.getItem("conversations");
-    return saved ? JSON.parse(saved) : [];
-  });
+const [password, setPassword] =
+  useState("");
 
-  const [currentChatId, setCurrentChatId] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [selectedModel, setSelectedModel] =
+const [token, setToken] =
+  useState(
+    localStorage.getItem("token") || ""
+  );
+
+const [messages, setMessages] =
+  useState([]);
+
+const [conversations, setConversations] =
+  useState([]);
+
+const [currentChatId, setCurrentChatId] =
+  useState(null);
+
+const [loading, setLoading] =
+  useState(false);
+
+const [selectedModel, setSelectedModel] =
   useState("deepseek/deepseek-chat");
-  const bottomRef = useRef(null);
-  const controllerRef = useRef(null);
+
+const bottomRef = useRef(null);
+
+const controllerRef = useRef(null);
 
   // 滚动到底部
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+  useEffect(() => {
+
+  if (!token) return;
+
+  async function loadMessages() {
+
+    const response = await fetch(
+      "http://127.0.0.1:3001/messages",
+      {
+        headers: {
+          Authorization:
+            `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data =
+      await response.json();
+
+    const formatted =
+      data.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+
+    setMessages(formatted);
+
+  }
+
+  loadMessages();
+
+}, [token]);
 
   // 加载 messages
   useEffect(() => {
@@ -46,9 +94,7 @@ export default function Chat() {
   }, []);
 
   // 保存 conversations
-  useEffect(() => {
-    localStorage.setItem("conversations", JSON.stringify(conversations));
-  }, [conversations]);
+
 
   // 新聊天
   function newChat() {
@@ -80,7 +126,80 @@ export default function Chat() {
 
 }
 
-  // 发送消息
+async function register() {
+
+  const response = await fetch(
+    "http://127.0.0.1:3001/register",
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+
+      body: JSON.stringify({
+        username,
+        password,
+      }),
+    }
+  );
+
+  const data =
+    await response.json();
+
+  alert(data.message || data.error);
+
+}
+
+async function login() {
+
+  const response = await fetch(
+    "http://127.0.0.1:3001/login",
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+
+      body: JSON.stringify({
+        username,
+        password,
+      }),
+    }
+  );
+
+  const data =
+    await response.json();
+
+  if (data.token) {
+
+  setMessages([]);
+
+  setConversations([]);
+
+  localStorage.setItem(
+    "token",
+    data.token
+  );
+
+  setToken(data.token);
+
+}
+
+  alert(data.message || data.error);
+
+}
+
+function logout() {
+
+  localStorage.removeItem("token");
+
+  setToken("");
+
+}
   async function sendMessage() {
     if (!message.trim()) return;
 
@@ -102,14 +221,19 @@ export default function Chat() {
           signal: controller.signal,
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-        },
-       body: JSON.stringify({
-  message: userMessage.content,
-  model: selectedModel,
-}),
-      });
+      "Content-Type":
+        "application/json",
 
+      Authorization:
+        `Bearer ${token}`,
+    },
+
+    body: JSON.stringify({
+      message: userMessage.content,
+      model: selectedModel,
+    }),
+  }
+);
 const reader = response.body.getReader();
 
 const decoder = new TextDecoder();
@@ -181,7 +305,62 @@ setLoading(false);
       setLoading(false);
     }
   }
+if (!token) {
 
+  return (
+
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+
+      <div className="bg-white p-8 rounded-2xl w-[350px] shadow">
+
+        <h1 className="text-3xl font-bold mb-6 text-center">
+          登录
+        </h1>
+
+        <input
+          placeholder="用户名"
+          value={username}
+          onChange={(e) =>
+            setUsername(e.target.value)
+          }
+          className="w-full border p-3 rounded-xl mb-4"
+        />
+
+        <input
+          type="password"
+          placeholder="密码"
+          value={password}
+          onChange={(e) =>
+            setPassword(e.target.value)
+          }
+          className="w-full border p-3 rounded-xl mb-4"
+        />
+
+        <div className="flex gap-2">
+
+          <button
+            onClick={login}
+            className="flex-1 bg-black text-white p-3 rounded-xl"
+          >
+            登录
+          </button>
+
+          <button
+            onClick={register}
+            className="flex-1 border p-3 rounded-xl"
+          >
+            注册
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  );
+
+}
   return (
     <div className="min-h-screen flex bg-white text-black">
 
@@ -228,9 +407,20 @@ setLoading(false);
 
         <div className="flex items-center justify-between mb-4">
 
+  <div className="flex items-center gap-3">
+
   <div className="text-3xl font-bold">
     Chat
   </div>
+
+  <button
+    onClick={logout}
+    className="border px-4 py-2 rounded-xl"
+  >
+    退出登录
+  </button>
+
+</div>
 
   <select
   value={selectedModel}
