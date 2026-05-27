@@ -46,48 +46,71 @@ const controllerRef = useRef(null);
 
   async function loadMessages() {
 
-    const response = await fetch(
-      "http://127.0.0.1:3001/messages",
-      {
-        headers: {
-          Authorization:
-            `Bearer ${token}`,
-        },
-      }
-    );
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:3001/messages",
+        {
+          headers: {
+            Authorization:
+              `Bearer ${token}`,
+          },
+        }
+      );
 
-    const data =
-      await response.json();
+      const data =
+        await response.json();
 
-    const formatted =
-      data.map(msg => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+      const formatted =
+        data.map(msg => ({
+          role: msg.role,
+          content: msg.content,
+        }));
 
-    setMessages(formatted);
+      setMessages(formatted);
+    } catch (error) {
+      console.log("加载消息失败", error);
+    }
 
   }
 
   loadMessages();
 
+  loadConversations();
+
 }, [token]);
 
   // 新聊天
-  function newChat() {
-    const newConversation = {
-      id: Date.now(),
-      title: "新聊天",
-      messages: [],
-    };
+  async function newChat() {
+    try {
+      const response = await fetch("http://127.0.0.1:3001/conversations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ title: "新聊天" }),
+      });
+      const data = await response.json();
 
-    setConversations(prev => [newConversation, ...prev]);
-    setCurrentChatId(newConversation.id);
-    setMessages([]);
+      setConversations(prev => [{ id: data.id, title: data.title }, ...prev]);
+      setCurrentChatId(data.id);
+      setMessages([]);
+    } catch (error) {
+      console.log("创建对话失败", error);
+    }
   }
 
   // 删除聊天
-  function deleteChat(id) {
+  async function deleteChat(id) {
+    try {
+      await fetch(`http://127.0.0.1:3001/conversations/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch (error) {
+      console.log("删除对话失败", error);
+    }
+
     setConversations(prev => prev.filter(chat => chat.id !== id));
 
     if (currentChatId === id) {
@@ -153,14 +176,14 @@ async function login() {
 
   if (data.token) {
 
-  setMessages([]);
-
-  setConversations([]);
-
   localStorage.setItem(
     "token",
     data.token
   );
+
+  setMessages([]);
+
+  setConversations([]);
 
   setToken(data.token);
 
@@ -178,6 +201,27 @@ function logout() {
 setMessages([]);
 
 setConversations([]);
+}
+async function loadConversations() {
+  try {
+    const response = await fetch(
+      "http://127.0.0.1:3001/conversations",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    // 确保 data 是数组才设置，防止后端报错时 data 是对象导致 .map() 崩溃
+    if (Array.isArray(data)) {
+      setConversations(data);
+    }
+  } catch (error) {
+    console.log("加载对话列表失败", error);
+  }
 }
   async function sendMessage() {
     if (!message.trim()) return;
@@ -349,7 +393,7 @@ if (!token) {
           onClick={newChat}
           className="bg-white border rounded-xl py-3 mb-4"
         >
-          + 新聊天
+          + 新聊天 
         </button>
 
         <div className="space-y-2">
@@ -358,7 +402,7 @@ if (!token) {
               key={chat.id}
               onClick={() => {
                 setCurrentChatId(chat.id);
-                setMessages(chat.messages);
+                setMessages(chat.messages || []);
               }}
               className={`p-3 rounded-xl cursor-pointer border flex justify-between ${
                 currentChatId === chat.id
