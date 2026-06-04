@@ -9,6 +9,7 @@ function Login({
   const dragged = useRef(false);
   const avatarListRef = useRef(null);
 
+  const [entered, setEntered] = useState(false);
   const [username, setUsername] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState(0);
   const [userPhoto, setUserPhoto] = useState(null);
@@ -66,6 +67,26 @@ const handleMouseMove = (e) => {
     scrollLeft.current - walk;
 };
 
+  /* ===== 入口欢迎页 ===== */
+  if (!entered) {
+    return (
+      <div className="login-wrapper">
+        <div className="bg"></div>
+        <div className="page">
+          <div className="welcome-entrance">
+            <img src="/cjw1.png" alt="avatar" className="welcome-avatar" />
+            <h1 className="welcome-title">kxinc</h1>
+            <p className="welcome-sub">欢迎来到我的个人网站</p>
+            <button className="welcome-btn" onClick={() => setEntered(true)}>
+              进 入
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ===== 登录页 ===== */
   return (
     <div className="login-wrapper">
       <div className="bg"></div>
