@@ -1,0 +1,519 @@
+/* ============ 管理员登录页 ============ */
+.admin-login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+}
+
+.admin-login-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 48px 40px;
+  width: 400px;
+  text-align: center;
+  color: #fff;
+}
+
+.admin-login-card h1 {
+  margin-bottom: 32px;
+  font-size: 1.6em;
+}
+
+.admin-login-card input {
+  width: 100%;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.admin-login-card input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.admin-login-card input:focus {
+  border-color: #4fc3f7;
+}
+
+.admin-login-card button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #4fc3f7, #2196f3);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.admin-login-card button:hover {
+  opacity: 0.9;
+}
+
+.admin-back {
+  display: inline-block;
+  margin-top: 20px;
+  color: rgba(255, 255, 255, 0.5);
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.2s;
+}
+
+.admin-back:hover {
+  color: #4fc3f7;
+}
+
+.admin-error {
+  color: #ff6b6b;
+  font-size: 14px;
+  margin: -8px 0 12px;
+}
+
+.admin-success {
+  color: #66bb6a;
+  font-size: 14px;
+  margin: -8px 0 12px;
+}
+
+/* ============ 管理后台主页 ============ */
+.admin-page {
+  min-height: 100vh;
+  background: #f0f2f5;
+  color: #333;
+}
+
+.admin-header {
+  background: linear-gradient(135deg, #1a1a2e, #0f3460);
+  color: #fff;
+  padding: 16px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-header h1 {
+  font-size: 1.4em;
+  margin: 0;
+}
+
+.admin-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.admin-header .admin-back {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+}
+
+.admin-header .admin-back:hover {
+  color: #4fc3f7;
+}
+
+.admin-logout-btn {
+  padding: 6px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  background: transparent;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.admin-logout-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* ============ 导航 ============ */
+.admin-nav {
+  background: #fff;
+  padding: 0 32px;
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid #e8e8e8;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.admin-nav button {
+  padding: 14px 20px;
+  border: none;
+  background: transparent;
+  color: #666;
+  font-size: 15px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.admin-nav button:hover {
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.04);
+}
+
+.admin-nav button.active {
+  color: #1890ff;
+  border-bottom-color: #1890ff;
+  font-weight: 600;
+}
+
+/* ============ 主体内容 ============ */
+.admin-main {
+  padding: 24px 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ============ 数据概览 ============ */
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.stat-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px 24px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+}
+
+.stat-number {
+  font-size: 2.2em;
+  font-weight: 700;
+  color: #1890ff;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  color: #999;
+  font-size: 14px;
+}
+
+/* ============ 表格 ============ */
+.admin-comments table,
+.admin-users table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.admin-comments th,
+.admin-comments td,
+.admin-users th,
+.admin-users td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+}
+
+.admin-comments th,
+.admin-users th {
+  background: #fafafa;
+  font-weight: 600;
+  color: #555;
+  position: sticky;
+  top: 0;
+}
+
+.admin-comments tr.selected,
+.admin-users tr.banned {
+  background: #fff7e6;
+}
+
+.admin-comments tr:hover,
+.admin-users tr:hover {
+  background: #f5f8ff;
+}
+
+.photo-key {
+  font-family: monospace;
+  font-size: 13px;
+  color: #888;
+}
+
+.comment-text-cell {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.time-cell {
+  font-size: 13px;
+  color: #999;
+  white-space: nowrap;
+}
+
+.user-avatar-sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 6px;
+  object-fit: cover;
+}
+
+.empty {
+  text-align: center;
+  color: #ccc;
+  padding: 40px !important;
+}
+
+/* ============ 角色和状态标签 ============ */
+.role-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.role-badge.admin {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+.role-badge.visitor {
+  background: #f0f0f0;
+  color: #999;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge.active {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.status-badge.banned {
+  background: #fff1f0;
+  color: #ff4d4f;
+}
+
+/* ============ 工具栏 ============ */
+.admin-toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+.admin-toolbar input {
+  flex: 1;
+  padding: 8px 14px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.admin-toolbar input:focus {
+  border-color: #1890ff;
+}
+
+.admin-toolbar button,
+.admin-settings button {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #1890ff;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.admin-toolbar button:hover,
+.admin-settings button:hover {
+  opacity: 0.85;
+}
+
+.admin-toolbar button.danger,
+button.sm.danger {
+  background: #ff4d4f;
+}
+
+.admin-toolbar button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+button.sm {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 6px;
+  background: #e6f7ff;
+  color: #1890ff;
+  font-size: 13px;
+  cursor: pointer;
+  margin-right: 6px;
+  transition: opacity 0.2s;
+}
+
+button.sm:hover {
+  opacity: 0.8;
+}
+
+/* ============ 分页 ============ */
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.admin-pagination button {
+  padding: 6px 16px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.admin-pagination button:hover:not(:disabled) {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.admin-pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.admin-pagination span {
+  color: #666;
+  font-size: 14px;
+}
+
+.reply-edit {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.reply-edit input {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  min-width: 120px;
+}
+
+.reply-edit input:focus {
+  border-color: #1890ff;
+}
+
+/* ============ 账号设置 ============ */
+.admin-settings {
+  background: #fff;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  max-width: 500px;
+}
+
+.admin-settings h2 {
+  margin-top: 0;
+  margin-bottom: 24px;
+  font-size: 1.2em;
+  color: #333;
+}
+
+.admin-settings input {
+  width: 100%;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.admin-settings input:focus {
+  border-color: #1890ff;
+}
+
+.admin-settings button {
+  margin-top: 4px;
+}
+
+/* ============ AI 管理 ============ */
+.admin-ai-section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.admin-ai-section h3 {
+  margin: 0 0 16px;
+  font-size: 1.1em;
+  color: #333;
+}
+
+.admin-ai table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-top: 16px;
+}
+
+.admin-ai th,
+.admin-ai td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+}
+
+.admin-ai th {
+  background: #fafafa;
+  font-weight: 600;
+  color: #555;
+}
+
+.admin-ai tr:hover {
+  background: #f5f8ff;
+}

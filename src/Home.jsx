@@ -1,5 +1,7 @@
 import "./Home.css";
 import { Link } from "react-router-dom";
+import Guestbook from "./Guestbook";
+
 function Home({
 username,
 avatar,}) {
@@ -80,6 +82,16 @@ avatar,}) {
   >
     📬 点击联系我
   </Link>
+
+  {username === "KxinqvqJJ" && (
+    <Link
+      to="/admin"
+      className="contact-btn"
+      style={{ marginTop: "10px", background: "linear-gradient(135deg, #1a1a2e, #0f3460)" }}
+    >
+      ⚙️ 管理后台
+    </Link>
+  )}
 
 </div>
         {/* 中间 */}
@@ -270,6 +282,8 @@ avatar,}) {
             </div>
 
           </div>
+
+          <Guestbook username={username} avatar={avatar} />
 
         </div>
 

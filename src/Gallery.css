@@ -50,6 +50,29 @@
   color:#000;
 }
 
+/* 主内容区：AI聊天 + 相册 并排 */
+.gallery-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 30px;
+  justify-content: center;
+  width: 100%;
+}
+
+.gallery-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .gallery-main {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
 /* 核心卡片（小红书） */
 .viewer{
   display:flex;

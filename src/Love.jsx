@@ -2,34 +2,15 @@ import "./Gallery.css";
 import "./Love.css";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-
-const LS_KEY = "love_data";
-
-function loadData() {
-  try {
-    return JSON.parse(localStorage.getItem(LS_KEY)) || {};
-  } catch {
-    return {};
-  }
-}
-
-function saveData(data) {
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(data));
-  } catch {}
-}
+import { getLikeCounts, addLike, clearAllLikes, getComments, addComment as apiAddComment } from "./api";
 
 function Love({ username = "游客", avatar = "" }) {
   const [index, setIndex] = useState(0);
 
-  const likesRef = useRef(loadData().likes || {});
-  const [likesVersion, setLikesVersion] = useState(0);
-  const likes = likesRef.current;
+  const [likes, setLikes] = useState({});
   const currentKey = `love-${index}`;
 
-  const commentsRef = useRef(loadData().comments || {});
-  const [commentsVersion, setCommentsVersion] = useState(0);
-  const comments = commentsRef.current;
+  const [comments, setComments] = useState([]);
 
   const [input, setInput] = useState("");
 
@@ -61,19 +42,6 @@ function Love({ username = "游客", avatar = "" }) {
   // 大图查看
   const [lightbox, setLightbox] = useState(false);
 
-  // 异步保存到 localStorage（防抖）
-  const saveTimer = useRef(null);
-  const needSave = useRef(false);
-  useEffect(() => {
-    if (!needSave.current) return;
-    needSave.current = false;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      saveData({ likes: likesRef.current, comments: commentsRef.current });
-    }, 500);
-    return () => {};
-  }, [likesVersion, commentsVersion]);
-
   const photos = [
     "/195.png", "/196.png", "/197.png", "/198.png", "/199.png",
     "/200.png", "/201.png", "/202.png", "/203.png", "/204.png",
@@ -93,6 +61,24 @@ function Love({ username = "游客", avatar = "" }) {
     "/270.png", "/271.png", "/272.png", "/273.png",
   ];
 
+  // 加载所有点赞数
+  useEffect(() => {
+    const keys = photos.map((_, i) => `love-${i}`);
+    getLikeCounts(keys).then(data => setLikes(data)).catch(() => {});
+  }, []);
+
+  // 加载当前照片评论
+  useEffect(() => {
+    getComments(currentKey).then(data => setComments(data)).catch(() => {});
+  }, [index]);
+
+  const clearLikes = async () => {
+    await clearAllLikes();
+    const keys = photos.map((_, i) => `love-${i}`);
+    const data = await getLikeCounts(keys);
+    setLikes(data);
+  };
+
   const prev = () => {
     setIndex(i => (i === 0 ? photos.length - 1 : i - 1));
   };
@@ -101,14 +87,11 @@ function Love({ username = "游客", avatar = "" }) {
     setIndex(i => (i === photos.length - 1 ? 0 : i + 1));
   };
 
-  const toggleLike = useCallback(() => {
-    const key = `love-${index}`;
-    likesRef.current = {
-      ...likesRef.current,
-      [key]: (likesRef.current[key] || 0) + 1,
-    };
-    setLikesVersion(v => v + 1);
-    needSave.current = true;
+  const toggleLike = useCallback(async () => {
+    try {
+      const newCount = await addLike(currentKey);
+      setLikes(prev => ({ ...prev, [currentKey]: newCount }));
+    } catch {}
 
     const idBase = Date.now();
     const newHearts = Array.from({ length: 8 }, (_, i) => ({
@@ -122,25 +105,20 @@ function Love({ username = "游客", avatar = "" }) {
     setTimeout(() => {
       setHearts(prev => prev.filter(h => !newHearts.some(nh => nh.id === h.id)));
     }, 800);
-  }, [index]);
+  }, [currentKey]);
 
-  const addComment = () => {
+  const handleAddComment = async () => {
     const text = input.trim();
     if (!text) return;
-    const entry = {
-      user: username,
-      avatar: avatar || "/1.png",
-      text,
-      time: Date.now(),
-    };
-    const key = currentKey;
-    commentsRef.current = {
-      ...commentsRef.current,
-      [key]: [...(commentsRef.current[key] || []), entry],
-    };
-    setCommentsVersion(v => v + 1);
-    needSave.current = true;
-    setInput("");
+    try {
+      const entry = await apiAddComment(currentKey, {
+        username,
+        avatar: avatar || "/1.png",
+        text,
+      });
+      setComments(prev => [...prev, entry]);
+      setInput("");
+    } catch {}
   };
 
   return (
@@ -234,6 +212,7 @@ function Love({ username = "游客", avatar = "" }) {
             </span>
           ))}
         </button>
+        {username === "KxinqvqJJ" && <button className="like-btn" onClick={clearLikes} title="清除所有点赞" style={{fontSize: "0.85em", opacity: 0.7}}>🗑️</button>}
       </div>
 
       <div className="comment-box">
@@ -243,17 +222,17 @@ function Love({ username = "游客", avatar = "" }) {
           placeholder="说点什么吧..."
           value={input}
           onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && addComment()}
+          onKeyDown={e => e.key === "Enter" && handleAddComment()}
         />
-        <button onClick={addComment}>发送</button>
+        <button onClick={handleAddComment}>发送</button>
       </div>
 
       <div className="comment-list">
-        {(comments[currentKey] || []).map((c, i) => (
-          <div key={i} className="comment-item">
+        {comments.map((c) => (
+          <div key={c.id} className="comment-item">
             <img className="comment-user-avatar" src={c.avatar} alt="" />
             <div className="comment-body">
-              <span className="comment-user">{c.user}</span>
+              <span className="comment-user">{c.username}</span>
               <span className="comment-text">{c.text}</span>
             </div>
           </div>

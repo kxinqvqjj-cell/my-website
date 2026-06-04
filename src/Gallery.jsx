@@ -1,22 +1,8 @@
 import "./Gallery.css";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-
-const LS_KEY = "gallery_data";
-
-function loadData() {
-  try {
-    return JSON.parse(localStorage.getItem(LS_KEY)) || {};
-  } catch {
-    return {};
-  }
-}
-
-function saveData(data) {
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(data));
-  } catch {}
-}
+import { getLikeCounts, addLike, clearAllLikes, getComments, addComment as apiAddComment } from "./api";
+import AiChat from "./AiChat";
 
 function Gallery({ username = "游客", avatar = "" }) {
   const tabNameMap = {
@@ -28,15 +14,9 @@ function Gallery({ username = "游客", avatar = "" }) {
 
   const [tab, setTab] = useState("campus");
   const [index, setIndex] = useState(0);
-  
-  // 用 ref 存储实时数据，UI 通过 forceUpdate 触发刷新
-  const likesRef = useRef(loadData().likes || {});
-  const [likesVersion, setLikesVersion] = useState(0); // 版本号触发重渲染
-  const likes = likesRef.current;
 
-  const commentsRef = useRef(loadData().comments || {});
-  const [commentsVersion, setCommentsVersion] = useState(0);
-  const comments = commentsRef.current;
+  const [likes, setLikes] = useState({});
+  const [comments, setComments] = useState([]);
 
   const [input, setInput] = useState("");
 
@@ -67,19 +47,6 @@ function Gallery({ username = "游客", avatar = "" }) {
 
   // 大图查看
   const [lightbox, setLightbox] = useState(false);
-
-  // 异步保存到 localStorage（防抖）
-  const saveTimer = useRef(null);
-  const needSave = useRef(false);
-  useEffect(() => {
-    if (!needSave.current) return;
-    needSave.current = false;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      saveData({ likes: likesRef.current, comments: commentsRef.current });
-    }, 500);
-    return () => {};
-  }, [likesVersion, commentsVersion]);
 
   const photos = {
     campus: [
@@ -128,6 +95,32 @@ function Gallery({ username = "游客", avatar = "" }) {
     ],
   };
   const list = photos[tab];
+  const currentKey = `${tab}-${index}`;
+
+  // 加载当前 tab 所有点赞数
+  useEffect(() => {
+    const keys = photos[tab].map((_, i) => `${tab}-${i}`);
+    getLikeCounts(keys).then(data => {
+      console.log("likes loaded:", data);
+      setLikes(data);
+    }).catch(err => console.error("load likes error:", err));
+  }, [tab]);
+
+  // 加载当前照片评论
+  useEffect(() => {
+    getComments(currentKey).then(data => {
+      console.log("comments loaded:", data);
+      setComments(data);
+    }).catch(err => console.error("load comments error:", err));
+  }, [tab, index]);
+
+  const clearLikes = async () => {
+    await clearAllLikes();
+    const keys = photos[tab].map((_, i) => `${tab}-${i}`);
+    const data = await getLikeCounts(keys);
+    setLikes(data);
+  };
+
   const prev = () => {
     setIndex(i => {
       const len = photos[tab].length;
@@ -142,18 +135,15 @@ function Gallery({ username = "游客", avatar = "" }) {
     });
   };
 
-  const currentKey = `${tab}-${index}`;
+  const toggleLike = useCallback(async () => {
+    try {
+      const newCount = await addLike(currentKey);
+      console.log("liked:", currentKey, newCount);
+      setLikes(prev => ({ ...prev, [currentKey]: newCount }));
+    } catch (err) {
+      console.error("like error:", err);
+    }
 
-  const toggleLike = useCallback(() => {
-    const key = `${tab}-${index}`;
-    likesRef.current = {
-      ...likesRef.current,
-      [key]: (likesRef.current[key] || 0) + 1,
-    };
-    setLikesVersion(v => v + 1);
-    needSave.current = true;
-
-    // 爱心动画
     const idBase = Date.now();
     const newHearts = Array.from({ length: 8 }, (_, i) => ({
       id: idBase + i,
@@ -166,25 +156,20 @@ function Gallery({ username = "游客", avatar = "" }) {
     setTimeout(() => {
       setHearts(prev => prev.filter(h => !newHearts.some(nh => nh.id === h.id)));
     }, 800);
-  }, [tab, index]);
+  }, [currentKey]);
 
-  const addComment = () => {
+  const handleAddComment = async () => {
     const text = input.trim();
     if (!text) return;
-    const entry = {
-      user: username,
-      avatar: avatar || "/1.png",
-      text,
-      time: Date.now(),
-    };
-    const key = currentKey;
-    commentsRef.current = {
-      ...commentsRef.current,
-      [key]: [...(commentsRef.current[key] || []), entry],
-    };
-    setCommentsVersion(v => v + 1);
-    needSave.current = true;
-    setInput("");
+    try {
+      const entry = await apiAddComment(currentKey, {
+        username,
+        avatar: avatar || "/1.png",
+        text,
+      });
+      setComments(prev => [...prev, entry]);
+      setInput("");
+    } catch {}
   };
 
   return (
@@ -243,93 +228,91 @@ function Gallery({ username = "游客", avatar = "" }) {
         ))}
       </div>
 
-  {/* 主卡片 */}
-<div className="viewer">
+  {/* 主内容区：AI聊天 + 相册 */}
+  <div className="gallery-main">
+    <AiChat username={username} avatar={avatar} />
 
-  <button onClick={prev} className="nav">←</button>
-
-  <div className="stack">
-    {list.map((img, i) => {
-      const offset = i - index;
-
-      if (offset < 0 || offset > 2) return null;
-
-      return (
-        <div
-          key={i}
-          className="stack-card"
-           onClick={() => { if (offset === 0) setLightbox(true); else setIndex(i); }} 
-          style={{
-            transform: `
-              translateX(${offset * 18}px)
-              scale(${1 - offset * 0.05})
-              translateY(${offset * 6}px)
-            `,
-            opacity: offset === 0 ? 1 : 0.6 - offset * 0.2,
-            zIndex: 10 - offset,
-          }}
-        >
-          <img src={img} alt="" />
+    <div className="gallery-right">
+      {/* 主卡片 */}
+      <div className="viewer">
+        <button onClick={prev} className="nav">←</button>
+        <div className="stack">
+          {list.map((img, i) => {
+            const offset = i - index;
+            if (offset < 0 || offset > 2) return null;
+            return (
+              <div
+                key={i}
+                className="stack-card"
+                onClick={() => { if (offset === 0) setLightbox(true); else setIndex(i); }}
+                style={{
+                  transform: `
+                    translateX(${offset * 18}px)
+                    scale(${1 - offset * 0.05})
+                    translateY(${offset * 6}px)
+                  `,
+                  opacity: offset === 0 ? 1 : 0.6 - offset * 0.2,
+                  zIndex: 10 - offset,
+                }}
+              >
+                <img src={img} alt="" />
+              </div>
+            );
+          })}
         </div>
-      );
-    })}
-  </div>
-
-  <button onClick={next} className="nav">→</button>
-
-</div>
-
-{/* 计数 + 点赞 + 留言 */}
-<div className="gallery-actions">
-   <div className="counter" key={index}>
-    {index + 1} / {list.length}
-  </div>
-
-  <button
-    className="like-btn"
-    onClick={toggleLike}
-  >
-    ❤️ {likes[currentKey] || 0}
-    {hearts.map(h => (
-      <span
-        key={h.id}
-        className="heart-particle"
-        style={{
-          '--dx': h.x + 'px',
-          '--dy': h.y + 'px',
-          '--rot': h.rotate + 'deg',
-          '--sc': h.scale,
-        }}
-      >
-        ❤️
-      </span>
-    ))}
-  </button>
-</div>
-
-<div className="comment-box">
-  <img className="comment-avatar" src={avatar || "/1.png"} alt="" />
-  <input
-    type="text"
-    placeholder="说点什么吧..."
-    value={input}
-    onChange={e => setInput(e.target.value)}
-    onKeyDown={e => e.key === "Enter" && addComment()}
-  />
-  <button onClick={addComment}>发送</button>
-</div>
-
-<div className="comment-list">
-  {(comments[currentKey] || []).map((c, i) => (
-    <div key={i} className="comment-item">
-      <img className="comment-user-avatar" src={c.avatar} alt="" />
-      <div className="comment-body">
-        <span className="comment-user">{c.user}</span>
-        <span className="comment-text">{c.text}</span>
+        <button onClick={next} className="nav">→</button>
       </div>
-    </div>
-  ))}
-</div>
+
+      {/* 计数 + 点赞 */}
+      <div className="gallery-actions">
+        <div className="counter" key={index}>
+          {index + 1} / {list.length}
+        </div>
+        <button className="like-btn" onClick={toggleLike}>
+          ❤️ {likes[currentKey] || 0}
+          {hearts.map(h => (
+            <span
+              key={h.id}
+              className="heart-particle"
+              style={{
+                '--dx': h.x + 'px',
+                '--dy': h.y + 'px',
+                '--rot': h.rotate + 'deg',
+                '--sc': h.scale,
+              }}
+            >
+              ❤️
+            </span>
+          ))}
+        </button>
+        {username === "KxinqvqJJ" && <button className="like-btn" onClick={clearLikes} title="清除所有点赞" style={{fontSize: "0.85em", opacity: 0.7}}>🗑️</button>}
+      </div>
+
+      {/* 评论输入 */}
+      <div className="comment-box">
+        <img className="comment-avatar" src={avatar || "/1.png"} alt="" />
+        <input
+          type="text"
+          placeholder="说点什么吧..."
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && handleAddComment()}
+        />
+        <button onClick={handleAddComment}>发送</button>
+      </div>
+
+      {/* 评论列表 */}
+      <div className="comment-list">
+        {comments.map((c) => (
+          <div key={c.id} className="comment-item">
+            <img className="comment-user-avatar" src={c.avatar} alt="" />
+            <div className="comment-body">
+              <span className="comment-user">{c.username}</span>
+              <span className="comment-text">{c.text}</span>
+            </div>
+          </div>
+        ))}
+      </div>
 
       {/* dots */}
       <div className="dots">
@@ -341,21 +324,23 @@ function Gallery({ username = "游客", avatar = "" }) {
           />
         ))}
       </div>
+    </div>
+  </div>
 
-      {lightbox && (
-        <div className="lightbox-overlay" onClick={() => setLightbox(false)}>
-          <span className="lightbox-close">✕</span>
-          <div className="lightbox-nav left" onClick={e => { e.stopPropagation(); prev(); }}>‹</div>
-          <img
-            src={list[index]}
-            alt=""
-            className="lightbox-img"
-            onClick={e => e.stopPropagation()}
-          />
-          <div className="lightbox-nav right" onClick={e => { e.stopPropagation(); next(); }}>›</div>
-          <div className="lightbox-counter">{index + 1} / {list.length}</div>
-        </div>
-      )}
+  {lightbox && (
+    <div className="lightbox-overlay" onClick={() => setLightbox(false)}>
+      <span className="lightbox-close">✕</span>
+      <div className="lightbox-nav left" onClick={e => { e.stopPropagation(); prev(); }}>‹</div>
+      <img
+        src={list[index]}
+        alt=""
+        className="lightbox-img"
+        onClick={e => e.stopPropagation()}
+      />
+      <div className="lightbox-nav right" onClick={e => { e.stopPropagation(); next(); }}>›</div>
+      <div className="lightbox-counter">{index + 1} / {list.length}</div>
+    </div>
+  )}
 
     </div>
   );
