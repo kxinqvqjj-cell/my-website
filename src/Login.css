@@ -1,0 +1,273 @@
+/* Login 页面样式隔离，防止 index.css 全局样式干扰 */
+.login-wrapper {
+  font-size: 16px !important;
+  letter-spacing: normal !important;
+}
+
+.login-wrapper * {
+  box-sizing: border-box !important;
+}
+
+.bg{
+  position:fixed !important;
+  top:0 !important;
+  left:0 !important;
+
+  width:100vw !important;
+  height:100vh !important;
+
+  background-image:url("/beijing1.png") !important;
+
+  background-size:cover !important;
+  background-position:center !important;
+
+  filter:blur(1px) !important;
+
+  transform:scale(1.1) !important;
+
+  z-index:-2 !important;
+}
+
+.bg::after{
+  content:"";
+
+  position:absolute;
+
+  inset:0;
+
+  background:rgba(0,0,0,.2);
+}
+.page{
+  width:100vw !important;
+  height:100vh !important;
+
+  display:flex !important;
+  justify-content:center !important;
+  align-items:center !important;
+
+  position:relative !important;
+}
+
+.card{
+
+  width:1100px !important;
+  height:650px !important;
+
+  background:white !important;
+
+  border-radius:25px !important;
+
+  overflow:hidden !important;
+
+  display:flex !important;
+
+  box-shadow:
+    0 20px 60px rgba(0,0,0,.3) !important;
+}
+
+.left-panel{
+
+  flex:1 !important;
+
+  background:#f3f4f6 !important;
+
+  display:flex !important;
+  justify-content:center !important;
+  align-items:center !important;
+}
+
+.left-panel img{
+  width:100% !important;
+  height:100% !important;
+  object-fit:cover !important;
+}
+
+.right-panel{
+
+  flex:1 !important;
+
+  padding:60px !important;
+
+  display:flex !important;
+
+  flex-direction:column !important;
+
+  justify-content:center !important;
+}
+
+.right-panel h1{
+  font-size:30px !important;
+  font-weight:700 !important;
+  letter-spacing:0 !important;
+
+  text-align:center;
+
+  margin:40px 0 20px 0 !important;
+
+  width:100%;
+  color:#000 !important;
+}
+.right-panel p{
+
+  color:#666 !important;
+
+  margin:0 0 30px 0 !important;
+}
+
+.right-panel input{
+
+   padding:18px;
+  font-size:16px;
+
+  border:none;
+
+  background:#f3f4f6;
+
+  border-radius:12px;
+
+  margin-bottom:20px;
+}
+
+.right-panel button{
+
+  padding:15px;
+
+  border:none;
+
+  border-radius:12px;
+
+  background:black;
+
+  color:white;
+
+  font-size:16px;
+
+  cursor:pointer;
+}
+.avatar-list {
+  display: flex !important;
+  gap: 12px;
+
+  width: 370px;
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  padding-bottom: 5px;
+
+  scrollbar-width: none;
+   margin: 0 auto 25px auto !important;
+  
+  flex-shrink:0;
+}
+
+.avatar-list::-webkit-scrollbar {
+  display: none;
+}
+
+.avatar-list:active {
+  cursor: grabbing;
+}
+
+.avatar {
+  min-width: 60px;
+   width:70px;
+  height:70px;
+
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+
+  border: 2px solid transparent;
+  transition: .3s;
+
+  flex-shrink: 0;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar:hover {
+  transform: scale(1.1);
+
+  box-shadow:
+    0 0 10px rgba(0,0,0,.2);
+}
+.avatar.active {
+  border: 2px solid #000;
+
+  box-shadow:
+    0 0 20px rgba(0,0,0,.25);
+
+  transform: scale(1.08);
+}
+.add-avatar {
+  min-width: 60px;
+  width: 60px;
+  height: 60px;
+
+  border-radius: 50%;
+  background: #eee;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  font-size: 30px;
+  color: #666;
+
+  flex-shrink: 0;
+}
+.upload-avatar{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+
+  font-size:48px;
+
+  color:#999;
+}
+
+/* ===== 手机端适配 ===== */
+@media (max-width: 768px) {
+  .card {
+    width: 100vw !important;
+    height: 100vh !important;
+    border-radius: 0 !important;
+    flex-direction: column !important;
+  }
+
+  .left-panel {
+    flex: none !important;
+    height: 35vh !important;
+  }
+
+  .right-panel {
+    flex: none !important;
+    padding: 24px 20px !important;
+  }
+
+  .right-panel h1 {
+    font-size: 24px !important;
+    margin: 20px 0 15px 0 !important;
+  }
+
+  .right-panel input {
+    padding: 14px;
+    font-size: 14px;
+    margin-bottom: 14px;
+  }
+
+  .avatar-list {
+    width: 100%;
+    margin: 0 auto 18px auto !important;
+  }
+
+  .avatar {
+    min-width: 50px;
+    width: 55px;
+    height: 55px;
+  }
+}

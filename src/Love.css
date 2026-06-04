@@ -1,0 +1,77 @@
+/* Love 页面专用背景 */
+.love-page {
+  min-height: 100vh;
+  padding: 40px 40px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 100px;
+  background: linear-gradient(rgba(0,0,0,.3), rgba(0,0,0,.6)), url("/beijing4.png");
+  background-size: cover;
+  background-position: center;
+  color: white;
+}
+
+/* Lightbox 大图查看 */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn .25s ease;
+}
+
+.lightbox-img {
+  max-width: 92vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 0 60px rgba(0,0,0,.5);
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 28px;
+  font-size: 32px;
+  color: white;
+  cursor: pointer;
+  z-index: 10;
+  opacity: .7;
+  transition: .2s;
+}
+.lightbox-close:hover { opacity: 1; }
+
+.lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 52px;
+  color: white;
+  cursor: pointer;
+  opacity: .6;
+  transition: .2s;
+  user-select: none;
+  z-index: 10;
+}
+.lightbox-nav:hover { opacity: 1; }
+.lightbox-nav.left { left: 20px; }
+.lightbox-nav.right { right: 20px; }
+
+.lightbox-counter {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255,255,255,.7);
+  font-size: 14px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
