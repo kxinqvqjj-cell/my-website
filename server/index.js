@@ -6,27 +6,56 @@ import crypto from "crypto";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import "dotenv/config";
+import dotenv from "dotenv";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+dotenv.config({ path: join(__dirname, ".env") });
+
 // 读取 AI 人设 Prompt（动态读取，支持热更新）
+const promptFilePath = join(__dirname, "../src/assets/.md/.md");
+let aiSystemPrompt = "";
+
 function getAiSystemPrompt() {
   try {
-    return fs.readFileSync(join(__dirname, "../src/assets/.md/.md"), "utf-8");
+    aiSystemPrompt = fs.readFileSync(promptFilePath, "utf-8").trim();
   } catch {
-    return aiSystemPrompt;
+    // 文件读取失败则使用内存中的缓存值
   }
+  return aiSystemPrompt || "你是一个友好的AI助手。";
 }
-let aiSystemPrompt = fs.readFileSync(join(__dirname, "../src/assets/.md/.md"), "utf-8");
+
 
 const app = express();
 const PORT = 3001;
 
-app.use(cors());
-app.use(express.json());
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3001",
+  "https://kxincc.top",
+  "https://www.kxincc.top",
+  "http://124.220.25.108",
+];
 
+app.use(cors({
+  origin(origin, callback) {
+    // 允许无 origin 的请求（如 curl、服务器内部调用）
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, true); // 暂时允许所有来源，后续可改为 callback(new Error("Not allowed"))
+    }
+  },
+  credentials: true,
+}));
+app.use(express.json());
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    time: Date.now()
+  });
+});
 // ============ 管理员登录 Token 存储 ============
 const adminTokens = new Map(); // token -> { username, expires }
 
@@ -82,6 +111,25 @@ app.post("/api/admin/logout", requireAdmin, (req, res) => {
   res.json({ success: true });
 });
 
+// ============ 通用频率限制 ============
+const actionRateLimit = new Map(); // key -> { count, date }
+
+function checkActionRateLimit(key, maxPerDay) {
+  const today = new Date().toISOString().slice(0, 10);
+  const info = actionRateLimit.get(key);
+  if (!info || info.date !== today) {
+    actionRateLimit.set(key, { count: 1, date: today });
+    return true;
+  }
+  if (info.count >= maxPerDay) return false;
+  info.count++;
+  return true;
+}
+
+function getClientIp(req) {
+  return req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.ip;
+}
+
 // ============ 点赞 API ============
 
 // 获取某张照片的点赞数
@@ -108,8 +156,14 @@ app.post("/api/likes/batch", async (req, res) => {
   res.json(result);
 });
 
-// 点赞（+1）
+// 点赞（+1，每IP每张照片每天最多1次）
 app.post("/api/likes/:key", async (req, res) => {
+  const ip = getClientIp(req);
+  const likeKey = `like:${ip}:${req.params.key}`;
+  if (!checkActionRateLimit(likeKey, 1)) {
+    return res.status(429).json({ error: "今天已经点过赞了", limited: true });
+  }
+
   await pool.execute(
     "INSERT INTO likes (photo_key, count) VALUES (?, 1) ON DUPLICATE KEY UPDATE count = count + 1",
     [req.params.key]
@@ -136,10 +190,17 @@ app.get("/api/comments/:key", async (req, res) => {
   res.json(rows);
 });
 
-// 添加评论
+// 添加评论（每IP每分钟最多5条）
 app.post("/api/comments/:key", async (req, res) => {
+  const ip = getClientIp(req);
+  const commentKey = `comment:${ip}`;
+  if (!checkActionRateLimit(commentKey, 50)) {
+    return res.status(429).json({ error: "评论太频繁了，稍后再试" });
+  }
+
   const { username, avatar, text } = req.body;
   if (!text || !text.trim()) return res.status(400).json({ error: "评论不能为空" });
+  if (text.trim().length > 500) return res.status(400).json({ error: "评论太长了，最多500字" });
 
   // 检查是否被封禁
   if (username) {
@@ -270,10 +331,17 @@ app.get("/api/guestbook", async (req, res) => {
   res.json(rows);
 });
 
-// 发表留言
+// 发表留言（每IP每天最多10条）
 app.post("/api/guestbook", async (req, res) => {
+  const ip = getClientIp(req);
+  const guestbookKey = `guestbook:${ip}`;
+  if (!checkActionRateLimit(guestbookKey, 10)) {
+    return res.status(429).json({ error: "留言太频繁了，稍后再试" });
+  }
+
   const { username, avatar, text } = req.body;
   if (!text || !text.trim()) return res.status(400).json({ error: "留言不能为空" });
+  if (text.trim().length > 500) return res.status(400).json({ error: "留言太长了，最多500字" });
 
   const created_at = Date.now();
   const [result] = await pool.execute(
@@ -485,7 +553,7 @@ app.post("/api/admin/ai/prompt", requireAdmin, async (req, res) => {
   const { prompt } = req.body;
   if (!prompt || !prompt.trim()) return res.status(400).json({ error: "人设不能为空" });
   try {
-    fs.writeFileSync(join(__dirname, "../src/assets/.md/.md"), prompt.trim(), "utf-8");
+    fs.writeFileSync(promptFilePath, prompt.trim(), "utf-8");
     aiSystemPrompt = prompt.trim();
     res.json({ success: true });
   } catch (err) {

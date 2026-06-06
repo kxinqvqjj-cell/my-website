@@ -223,6 +223,7 @@ function Admin() {
   // 回复留言
   const replyGuestbook = async (id) => {
     const text = replyForm.text.trim();
+    console.log("[replyGuestbook] id:", id, "text:", text, "replyForm:", replyForm);
     if (!text) return alert("请输入回复内容");
     try {
       const res = await fetch(`${API_BASE}/admin/guestbook/${id}/reply`, {
@@ -231,6 +232,7 @@ function Admin() {
         body: JSON.stringify({ reply: text }),
       });
       const data = await res.json();
+      console.log("[replyGuestbook] response:", res.status, data);
       if (res.ok) {
         setReplyForm({ id: null, text: "" });
         loadGuestbook(guestbookPage, guestbookSearch);

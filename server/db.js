@@ -1,5 +1,13 @@
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+import dotenv from "dotenv";
+
+// 手动指定 .env 路径（server/.env），确保无论从哪个目录启动都能加载
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+dotenv.config({ path: join(__dirname, ".env") });
+
 import mysql from "mysql2/promise";
-import "dotenv/config";
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST || "localhost",
