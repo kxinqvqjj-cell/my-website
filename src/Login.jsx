@@ -1,5 +1,6 @@
 import "./Login.css";
 import { useState, useRef } from "react";
+import { uploadAvatar } from "./api";
 
 function Login({
   setIsLogin,
@@ -13,6 +14,8 @@ function Login({
   const [username, setUsername] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState(0);
   const [userPhoto, setUserPhoto] = useState(null);
+  const [userPhotoFile, setUserPhotoFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   const avatars = [
     "/1.png",
@@ -147,6 +150,7 @@ const handleMouseMove = (e) => {
         setUserPhoto(
           URL.createObjectURL(file)
         );
+        setUserPhotoFile(file);
       } 
     }}
   />
@@ -163,26 +167,36 @@ const handleMouseMove = (e) => {
 />
 
 <button
-  onClick={() => {
+  onClick={async () => {
 
     if (!username.trim()) {
       alert("请输入用户名");
       return;
     }
 
+    setUploading(true);
+    let finalAvatar = avatars[selectedAvatar];
+
+    if (userPhotoFile) {
+      try {
+        const res = await uploadAvatar(userPhotoFile);
+        finalAvatar = res.url;
+      } catch (err) {
+        console.error("头像上传失败:", err);
+        alert("头像上传失败，请重试");
+        setUploading(false);
+        return;
+      }
+    }
+
     saveUsername(username);
-
-    saveAvatar(
-      userPhoto
-        ? userPhoto
-        : avatars[selectedAvatar]
-    );
-
+    saveAvatar(finalAvatar);
     setIsLogin(true);
+    setUploading(false);
 
   }}
 >
-  登录
+  {uploading ? "上传中..." : "登录"}
 </button>
           </div>
 

@@ -7,6 +7,7 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import dotenv from "dotenv";
+import multer from "multer";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -50,6 +51,37 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+
+// ============ 头像上传 ============
+const avatarDir = join(__dirname, "../public/avatars");
+if (!fs.existsSync(avatarDir)) fs.mkdirSync(avatarDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, avatarDir),
+  filename: (_req, file, cb) => {
+    const ext = file.originalname.split(".").pop() || "png";
+    const name = `${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${ext}`;
+    cb(null, name);
+  },
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  fileFilter: (_req, file, cb) => {
+    if (/^image\/(jpeg|png|gif|webp)$/.test(file.mimetype)) cb(null, true);
+    else cb(new Error("只支持 jpg/png/gif/webp 图片"));
+  },
+});
+
+app.post("/api/upload/avatar", upload.single("avatar"), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "请选择图片" });
+  const url = `/avatars/${req.file.filename}`;
+  res.json({ url });
+});
+
+// 静态文件：让 /avatars/ 可访问
+app.use("/avatars", express.static(avatarDir));
+
 app.get("/health", (req, res) => {
   res.json({
     status: "ok",

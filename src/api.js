@@ -75,3 +75,19 @@ export async function addGuestbookMessage({ username, avatar, text }) {
   });
   return res.json();
 }
+
+// ============ 头像上传 ============
+
+export async function uploadAvatar(file) {
+  const formData = new FormData();
+  formData.append("avatar", file);
+  const res = await fetch(`${API_BASE}/upload/avatar`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "上传失败");
+  }
+  return res.json(); // { url: "/avatars/xxx.png" }
+}
